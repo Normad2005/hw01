@@ -1,0 +1,342 @@
+
+--- Page 1 ---
+第 4 章 WIFI –3– 
+ 
+ 
+第 4 章 WIFI 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+本章學習 
+內容摘要 
+1. 功能介紹 
+2. 掃描附近 WIFI 
+3. 將資料上傳至資料庫 
+4. 將 DHT11 的資料傳至資料庫 
+ 
+ 
+ 章節目標 : 在這一章節，我們將介紹 ESP32 的 WIFI 功
+能，並利用 WIFI 將資料上傳至資料庫中。 
+--- Page 2 ---
+第 4 章 WIFI –3 – 
+ 
+ 
+1. 功能介紹 
+此小節將介紹 ESP32 的 WIFI 運作。 
+ESP32 的 WIFI 運作模式 
+ESP32 的 WIFI 運作模式可以分為三種 :  
+ 
+1.AP (Access Point) 模式  
+  允許其他無線設備接入，就像是住家或公共區域的無線網路基地台。 
+ 
+2.STA (Station) 模式 
+  不允許其他無線設備接入，只能去連接其他 AP 的裝置。 
+ 
+3.AP/STA 混和模式 
+  同時當作基地台，也可以去連接其他裝置。 
+  
+在接下來的小節，我們會設定 ESP32 為 STA 模式，並連接手機網路，將資料上傳
+至網頁或是資料庫中。 
+ 
+  
+2. 掃描附近 WIFI 
+此小節將介紹如何使用 ESP32 去掃描附近的 WIFI。 
+1. 掃描 WIFI 的程式碼 
+程式碼如下 
+#include "WiFi.h"        //WIFI 的標頭檔 
+ 
+void setup() { 
+  Serial.begin(115200); 
+  WiFi.mode(WIFI_STA);   //設定 ESP32 的網路模式為STA 模式 
+  WiFi.disconnect();     //將先前 WIFI 的連結中斷掉(初始化) 
+  delay(100); 
+  Serial.println("Setup done"); 
+} 
+ 
+void loop() { 
+  Serial.println("scan start"); 
+  int n = WiFi.scanNetworks();   //掃描附近網路 
+  Serial.println("scan done"); 
+ 
+  if (n == 0) 
+    Serial.println("no networks found"); 
+--- Page 3 ---
+第 4 章 WIFI – 4 – 
+ 
+ 
+  else { 
+    Serial.println("networks found =>"); 
+    //開始印出所有網路 
+    for (int i = 0; i < n; ++i) { 
+      Serial.print(i + 1); 
+      Serial.print(": "); 
+      Serial.println(WiFi.SSID(i));  //印出 WIFI 的名稱 
+      delay(10); 
+    } 
+  } 
+  Serial.println(""); 
+  delay(5000); //暫停 5 秒 
+} 
+ 
+打開序列埠，可以看到 ESP32 掃描到的 WIFI。 
+ 
+   
+3. 將資料上傳至資料庫 
+在此小節，我們先測試是否能將資料傳至 MySQL 裡。 
+0. 匯入 MYSQL 程式庫 
+ 
+
+--- Page 4 ---
+第 4 章 WIFI – 5 – 
+ 
+ 
+1. 程式碼 
+做 MySQL 連線測試，手動寫入一個溫度及濕度資料做測試 
+#include <WiFi.h> 
+#include <MySQL_Connection.h> 
+#include <MySQL_Cursor.h> 
+ 
+const char ssid[]     = "___";            //輸入你要連的WIFI 名稱 
+const char password[] = "___";            //輸入WIFI 密碼 
+ 
+IPAddress server_addr(___,___,___,___);    //輸入你的 WIFI 的 IP Address 
+                                           //這裡是用逗號做分隔，不是點 
+ 
+int MYSQLPort = 3306;   //輸入 MySQL 使用的 port 號(預設為 3306) 
+ 
+char user[] = "___";  //MySQL 使用者的帳號 
+char pass[] = "___";  //MySQL 使用者的密碼 
+ 
+WiFiClient client;  //連接 Wifi 的物件 
+MySQL_Connection conn((Client *)&client); //連接MySQL 的物件 
+ 
+void setup() { 
+  Serial.begin(115200); 
+  delay(10); 
+ 
+  //連線你輸入的WIFI 
+  Serial.print("\nConnecting to "); 
+  Serial.println(ssid); 
+  WiFi.begin(ssid, password);    
+  while (WiFi.status() != WL_CONNECTED) { 
+    delay(500); 
+    Serial.print("."); 
+  } 
+  Serial.println(""); 
+  Serial.println("WiFi connected");   
+  Serial.println("IP address: "); 
+  Serial.println(WiFi.localIP()); 
+   
+  //連線至 MySQL 
+  if (conn.connect(server_addr, 3306, user, pass)) 
+    delay(1000); 
+else 
+    Serial.println("Connection failed."); 
+  delay(2000); 
+   
+  //將溫度 30，濕度 60 傳至MySQL 
+  String INSERT_SQL = "INSERT INTO tempandhumd.datalog (temp,humd) VALUES 
+('30','60')"; //SQL 的語法 
+  MySQL_Cursor *cur_mem = new MySQL_Cursor(&conn);   
+  cur_mem->execute(INSERT_SQL.c_str());  //執行剛剛的 SQL 語法   
+  delete cur_mem;          //因為已執行完SQL 語法，不需要了，所以刪掉它 
+--- Page 5 ---
+第 4 章 WIFI – 6 – 
+ 
+ 
+  conn.close();            //關掉與MySQL 的連結 
+  Serial.println("Data Saved."); 
+} 
+ 
+void loop() { 
+} 
+ 
+ 
+2. WIFI 的IP ADDRESS 
+打開 命令提示字元(CMD) 
+ 
+ 
+輸入 ipconfig，可以找到電腦連接的 IP Address 
+ 
+ 
+(一、電腦連 WIFI) 
+使用自己的筆電，然後連接無線網路，找到”無線區域網路介面卡 Wi-Fi”，把 IPv4
+位址輸入至下面這行程式碼。(注意，中間的分隔是逗號，不是點) 
+IPAddress server_addr(___,___,___,___); 
+ 
+   
+
+--- Page 6 ---
+第 4 章 WIFI – 7 – 
+ 
+ 
+ 
+(二、電腦接有線網路) 
+把 IPv4 位址輸入至下面這行程式碼。(注意，中間的分隔是逗號，不是點) 
+IPAddress server_addr(___,___,___,___); 
+   
+   
+   
+3. MYSQL 使用的 PORT 號 
+在以下紅框處會顯示 MySQL 的 port 號 
+ 
+   
+4. MYSQL 的帳號與密碼 
+打開 phpMyAdmin 
+ 
+ 
+
+--- Page 7 ---
+第 4 章 WIFI – 8 – 
+ 
+ 
+ 
+點 使用者帳號->新增使用者帳號 
+ 
+   
+  使用者名稱自行輸入，主機名稱輸入”%”，密碼自行輸入。 
+ 
+ 
+  將第二項打勾。 
+ 
+   
+   
+   
+
+--- Page 8 ---
+第 4 章 WIFI – 9 – 
+ 
+ 
+  點 全選，執行。 
+ 
+ 
+  接著，把剛剛輸入的使用者名稱以及密碼，輸入至以下的程式碼 
+char user[] = "___";  //MySQL 使用者的帳號 
+char pass[] = "___";  //MySQL 使用者的密碼 
+ 
+再來新增資料庫 
+ 
+ 
+ 
+
+--- Page 9 ---
+第 4 章 WIFI – 10 – 
+ 
+ 
+輸入 tempandhumd，然後建立。 
+ 
+ 
+建立一個 table，名稱為 datalog，然後執行。 
+ 
+ 
+  名稱與參數照著下圖輸入，之後儲存。 
+ 
+
+--- Page 10 ---
+第 4 章 WIFI – 11 – 
+ 
+ 
+   
+  這樣資料庫這部分就完成了。 
+5. 查看結果 
+點選 tempandhumd 裡的 datalog，就可以看到資料庫裡的內容。 
+ 
+ 
+4. 將 DHT11 的資料傳至資料庫 
+在上個小節，我們學會將資料上傳至資料庫，而在此小節，將利用 DHT11(溫溼度
+模組)把感測到的溫度與濕度上傳至資料庫裡。 
+請注意，DHT11 若接錯腳位，會燒壞!!! 
+0. 匯入 DHT11 程式庫 
+ 
+1. 程式碼 
+#include <WiFi.h> 
+#include <MySQL_Connection.h> 
+#include <MySQL_Cursor.h> 
+#include <SimpleDHT.h>                    //DHT11 的標頭檔 
+
+--- Page 11 ---
+第 4 章 WIFI – 12 – 
+ 
+ 
+ 
+const char ssid[]     = "___";            //輸入你要連的WIFI 名稱 
+const char password[] = "___";            //輸入WIFI 密碼 
+ 
+IPAddress server_addr(___,___,___,___);    //輸入你的 WIFI 的 IP Address 
+ 
+int MYSQLPort = 3306;   //輸入 MySQL 使用的 port 號(預設為 3306) 
+ 
+char user[] = "___";  //MySQL 使用者的帳號 
+char pass[] = "___";  //MySQL 使用者的密碼 
+ 
+WiFiClient client; 
+MySQL_Connection conn((Client *)&client);  
+ 
+int pinDHT11 = 4;                 //把 DHT11 的 Data 腳位接在 GPIO 4 
+SimpleDHT11 dht11(pinDHT11); 
+ 
+void setup() { 
+  Serial.begin(115200); 
+  delay(10); 
+ 
+  //連線你輸入的WIFI 
+  WiFi.begin(ssid, password);    
+  while (WiFi.status() != WL_CONNECTED) { 
+    delay(500); 
+    Serial.print("."); 
+  } 
+  Serial.println(""); 
+  Serial.println("WiFi connected"); 
+  Serial.println("IP address: "); 
+  Serial.println(WiFi.localIP()); 
+   
+  //連線至 MySQL 
+  if (conn.connect(server_addr, 3306, user, pass)) 
+    delay(1000); 
+else 
+    Serial.println("Connection failed."); 
+  delay(2000); 
+} 
+ 
+ 
+void loop() { 
+  //讀取 DHT11 
+  byte temperature = 0; 
+  byte humidity = 0; 
+  int err = SimpleDHTErrSuccess; 
+  if ((err = dht11.read(&temperature, &humidity, NULL)) != 
+SimpleDHTErrSuccess) { 
+    Serial.print("Read DHT11 failed, err="); Serial.println(err); 
+delay(1000); 
+    return; 
+  } 
+--- Page 12 ---
+第 4 章 WIFI – 13 – 
+ 
+ 
+  Serial.print("Sample OK: "); 
+  Serial.print((int)temperature); Serial.print(" *C, "); 
+  Serial.print((int)humidity); Serial.println(" H"); 
+ 
+  //將 DHT11 讀到的溫度與濕度傳至MySQL 
+  String INSERT_SQL = "INSERT INTO tempandhumd.datalog (temp,humd) VALUES 
+('" + String((int)temperature) + "','" + String((int)humidity) + "')";  
+//SQL 的語法 
+  MySQL_Cursor *cur_mem = new MySQL_Cursor(&conn);   
+  cur_mem->execute(INSERT_SQL.c_str());  //執行剛剛的 SQL 語法 
+  delete cur_mem;          //因為已執行完SQL 語法，不需要了，所以刪掉它 
+  Serial.println("Data Saved."); 
+  delay(6000); 
+} 
+2. 接線 
+ 
+ 
+
+--- Page 13 ---
+ 
+ 
+ 

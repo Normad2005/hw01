@@ -108,9 +108,11 @@ def send_data():
 
 
 # ══════════════════════════════════════════════════════════
-#  背景執行緒啟動器（只在整個程序生命週期啟動一次）
-#  注意：use_reloader=False、debug=False 是在非主執行緒中
-#        執行 Flask 的必要設定（避免 signal 錯誤）
+#  背景執行緒啟動器
+#  ⚠️  st.session_state 是每個 browser session 獨立的，
+#      不能用來做 process 級別的 once-only guard。
+#      改用 module 層級的 Lock + 旗標，確保整個 Python
+#      process 只啟動一次 Flask 和模擬器，無論有多少 session。
 # ══════════════════════════════════════════════════════════
 def _start_flask():
     init_db()
@@ -119,9 +121,17 @@ def _start_flask():
 def _start_simulator():
     send_data()
 
-# 利用 st.session_state 確保背景執行緒只啟動一次
-if "background_started" not in st.session_state:
-    st.session_state.background_started = True
+# ══════════════════════════════════════════════════════════
+#  Process-level once-only guard
+#  Streamlit 每次 rerun 都會重新執行整個 script，
+#  module-level 變數也會被重置。
+#  用 builtins 模組當作 process 全域命名空間，
+#  確保 Flask 和模擬器只被啟動一次。
+# ══════════════════════════════════════════════════════════
+import builtins
+
+if not getattr(builtins, "_hw01_bg_started", False):
+    builtins._hw01_bg_started = True   # 設定全域旗標
 
     flask_thread = threading.Thread(target=_start_flask, daemon=True, name="FlaskBackend")
     flask_thread.start()

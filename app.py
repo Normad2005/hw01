@@ -88,12 +88,12 @@ def send_data():
     # 等 Flask 啟動完畢再開始送資料
     time.sleep(3)
     # 以合理的初始值為起點，之後每次只小幅漂移（模擬真實 DHT11 感測器）
-    temperature = round(random.uniform(24.0, 28.0), 2)
-    humidity    = round(random.uniform(55.0, 65.0), 2)
+    temperature = round(random.uniform(25.0, 27.0), 2)
+    humidity    = round(random.uniform(58.0, 62.0), 2)
     while True:
-        # 每次最多漂移 ±0.3°C / ±0.5%，並限制在合理範圍內
-        temperature = round(max(20.0, min(35.0, temperature + random.uniform(-0.3, 0.3))), 2)
-        humidity    = round(max(40.0, min(80.0, humidity    + random.uniform(-0.5, 0.5))), 2)
+        # 每次最多漂移 ±0.1°C / ±0.2%，曲線更平滑
+        temperature = round(max(22.0, min(32.0, temperature + random.uniform(-0.1, 0.1))), 2)
+        humidity    = round(max(50.0, min(75.0, humidity    + random.uniform(-0.2, 0.2))), 2)
         data = {
             "temperature": temperature,
             "humidity": humidity

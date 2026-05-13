@@ -81,12 +81,16 @@ SERVER_URL = "http://127.0.0.1:5000/sensor"
 def send_data():
     # 等 Flask 啟動完畢再開始送資料
     time.sleep(3)
+    # 以合理的初始值為起點，之後每次只小幅漂移（模擬真實 DHT11 感測器）
+    temperature = round(random.uniform(24.0, 28.0), 2)
+    humidity    = round(random.uniform(55.0, 65.0), 2)
     while True:
-        temperature = random.uniform(20.0, 35.0)
-        humidity = random.uniform(40.0, 80.0)
+        # 每次最多漂移 ±0.3°C / ±0.5%，並限制在合理範圍內
+        temperature = round(max(20.0, min(35.0, temperature + random.uniform(-0.3, 0.3))), 2)
+        humidity    = round(max(40.0, min(80.0, humidity    + random.uniform(-0.5, 0.5))), 2)
         data = {
-            "temperature": round(temperature, 2),
-            "humidity": round(humidity, 2)
+            "temperature": temperature,
+            "humidity": humidity
         }
         try:
             response = requests.post(SERVER_URL, json=data)

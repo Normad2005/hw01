@@ -122,22 +122,17 @@ def _start_simulator():
     send_data()
 
 # ══════════════════════════════════════════════════════════
-#  Process-level once-only guard
-#  Streamlit 每次 rerun 都會重新執行整個 script，
-#  module-level 變數也會被重置。
-#  用 builtins 模組當作 process 全域命名空間，
-#  確保 Flask 和模擬器只被啟動一次。
+#  最可靠的 once-only guard：直接檢查執行緒名稱是否已存在
+#  無論 Streamlit 重新執行幾次 script、有幾個 session 連線，
+#  只要 thread 已經在跑，就不再重複啟動。
 # ══════════════════════════════════════════════════════════
-import builtins
+_running_thread_names = {t.name for t in threading.enumerate()}
 
-if not getattr(builtins, "_hw01_bg_started", False):
-    builtins._hw01_bg_started = True   # 設定全域旗標
+if "FlaskBackend" not in _running_thread_names:
+    threading.Thread(target=_start_flask,     daemon=True, name="FlaskBackend").start()
 
-    flask_thread = threading.Thread(target=_start_flask, daemon=True, name="FlaskBackend")
-    flask_thread.start()
-
-    sim_thread = threading.Thread(target=_start_simulator, daemon=True, name="ESP32Sim")
-    sim_thread.start()
+if "ESP32Sim" not in _running_thread_names:
+    threading.Thread(target=_start_simulator, daemon=True, name="ESP32Sim").start()
 
 
 # ══════════════════════════════════════════════════════════

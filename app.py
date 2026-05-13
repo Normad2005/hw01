@@ -24,11 +24,15 @@ import time
 import sqlite3
 import random
 import requests
+from datetime import datetime, timezone, timedelta
 
 import streamlit as st
 import pandas as pd
 
 from flask import Flask, request, jsonify
+
+# 台灣時區 UTC+8
+TZ_TAIWAN = timezone(timedelta(hours=8))
 
 # ══════════════════════════════════════════════════════════
 #  原始 flask_backend.py 的邏輯（原封不動）
@@ -60,11 +64,13 @@ def receive_data():
     humidity = data['humidity']
 
     try:
+        # 明確使用台灣時間（UTC+8）作為 timestamp，避免伺服器時區差異
+        tw_now = datetime.now(TZ_TAIWAN).strftime("%Y-%m-%d %H:%M:%S")
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO sensor_data (temperature, humidity) VALUES (?, ?)",
-            (temperature, humidity)
+            "INSERT INTO sensor_data (temperature, humidity, timestamp) VALUES (?, ?, ?)",
+            (temperature, humidity, tw_now)
         )
         conn.commit()
         conn.close()
